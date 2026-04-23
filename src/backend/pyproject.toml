@@ -13,4 +13,6 @@ dependencies = [
     "python-multipart",
     "pydantic",
     "pillow",
+    "requests",
+    "streamlit",
 ]

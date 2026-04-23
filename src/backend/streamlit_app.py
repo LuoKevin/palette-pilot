@@ -1,0 +1,42 @@
+import requests
+import streamlit as st
+
+
+API_URL = "http://127.0.0.1:8000/colorize/upload"
+
+st.set_page_config(page_title="Palette Pilot Upload Test", layout="wide")
+st.title("Palette Pilot Backend Upload Test")
+st.caption("This is a temporary test harness for the FastAPI upload endpoint.")
+
+target_file = st.file_uploader("Target image", type=["png", "jpg", "jpeg"], key="target")
+reference_file = st.file_uploader("Reference image", type=["png", "jpg", "jpeg"], key="reference")
+
+if st.button("Send to backend", type="primary"):
+    if target_file is None or reference_file is None:
+        st.error("Upload both a target image and a reference image.")
+    else:
+        files = {
+            "target_image": (target_file.name, target_file.getvalue(), target_file.type),
+            "reference_image": (reference_file.name, reference_file.getvalue(), reference_file.type),
+        }
+
+        try:
+            response = requests.post(API_URL, files=files, timeout=30)
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            st.error(f"Request failed: {exc}")
+        else:
+            st.success("Backend responded successfully.")
+            st.json(response.json())
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Target Preview")
+    if target_file is not None:
+        st.image(target_file, use_container_width=True)
+
+with col2:
+    st.subheader("Reference Preview")
+    if reference_file is not None:
+        st.image(reference_file, use_container_width=True)
