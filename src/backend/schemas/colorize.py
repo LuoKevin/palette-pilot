@@ -12,3 +12,5 @@ class UploadResponse(BaseModel):
     reference: UploadInfo
     palette: list[list[int]]
     palette_counts: list[int]
+    target_luminance_png_base64: str | None = None
+    target_tone_buckets_png_base64: str | None = None

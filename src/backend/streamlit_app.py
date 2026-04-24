@@ -3,6 +3,8 @@ import streamlit as st
 
 
 API_URL = "http://127.0.0.1:8000/colorize/upload"
+PREVIEW_WIDTH = 420
+DEBUG_IMAGE_WIDTH = 420
 
 
 def rgb_to_hex(rgb: list[int]) -> str:
@@ -35,6 +37,8 @@ if st.button("Send to backend", type="primary"):
             palette = data.get("palette", [])
             palette_counts = data.get("palette_counts", [])
             total_count = sum(palette_counts)
+            target_luminance_base64 = data.get("target_luminance_png_base64")
+            target_tone_buckets_base64 = data.get("target_tone_buckets_png_base64")
 
             st.success("Backend responded successfully.")
             st.subheader("Extracted Palette")
@@ -63,6 +67,29 @@ if st.button("Send to backend", type="primary"):
             else:
                 st.info("No palette returned.")
 
+            st.subheader("Target Preprocessing Debug")
+            debug_col1, debug_col2 = st.columns(2)
+
+            with debug_col1:
+                if target_luminance_base64:
+                    st.image(
+                        f"data:image/png;base64,{target_luminance_base64}",
+                        caption="Luminance",
+                        width=DEBUG_IMAGE_WIDTH,
+                    )
+                else:
+                    st.info("No luminance debug image returned.")
+
+            with debug_col2:
+                if target_tone_buckets_base64:
+                    st.image(
+                        f"data:image/png;base64,{target_tone_buckets_base64}",
+                        caption="Tone buckets",
+                        width=DEBUG_IMAGE_WIDTH,
+                    )
+                else:
+                    st.info("No tone buckets debug image returned.")
+
             st.subheader("Raw Response")
             st.json(data)
 
@@ -71,9 +98,9 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("Target Preview")
     if target_file is not None:
-        st.image(target_file, use_container_width=True)
+        st.image(target_file, width=PREVIEW_WIDTH)
 
 with col2:
     st.subheader("Reference Preview")
     if reference_file is not None:
-        st.image(reference_file, use_container_width=True)
+        st.image(reference_file, width=PREVIEW_WIDTH)

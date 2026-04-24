@@ -1,11 +1,13 @@
+import base64
 from fastapi import APIRouter, File, UploadFile
 from schemas.colorize import UploadResponse, UploadInfo
 from PIL import Image
 from io import BytesIO
 from services.palette import Palette, extract_palette
-
+from services.preprocess import compute_luminance, create_tone_bucket_debug_image
 
 router = APIRouter(prefix="/colorize", tags=["colorize"])
+
 
 @router.post("/upload")
 async def colorize(
@@ -22,7 +24,11 @@ async def colorize(
     reference_mode = reference_img.mode
 
     reference_palette: Palette = extract_palette(reference_img)
+    luminance_img = compute_luminance(target_img)
+    luminance_base64 = image_to_base64_png(luminance_img)
 
+    tone_bucket_img = create_tone_bucket_debug_image(target_img)
+    tone_bucket_base64 = image_to_base64_png(tone_bucket_img)
     return UploadResponse(
         target=UploadInfo(
             filename=target_image.filename,
@@ -40,6 +46,8 @@ async def colorize(
         ),
         palette=reference_palette.colors,
         palette_counts=reference_palette.counts,
+        target_luminance_png_base64=luminance_base64,
+        target_tone_buckets_png_base64=tone_bucket_base64,
     )
 
 
@@ -48,3 +56,8 @@ async def load_rgb_image(file: UploadFile) -> Image.Image:
     img = Image.open(BytesIO(image_bytes)).convert("RGB")
     return img
 
+
+def image_to_base64_png(image: Image.Image) -> str:
+    buffered = BytesIO()
+    image.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
