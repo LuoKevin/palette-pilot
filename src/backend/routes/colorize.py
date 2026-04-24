@@ -28,7 +28,9 @@ async def colorize(
     target_mode = target_img.mode
     reference_mode = reference_img.mode
 
-    reference_palette: Palette = extract_palette(reference_img)
+    num_colors = 5
+
+    reference_palette: Palette = extract_palette(reference_img, num_colors=num_colors)
     reference_palette.sort_by_luminance()
     luminance_img = compute_luminance(target_img)
     luminance_base64 = image_to_base64_png(luminance_img)
