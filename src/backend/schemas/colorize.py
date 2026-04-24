@@ -11,3 +11,4 @@ class UploadResponse(BaseModel):
     target: UploadInfo
     reference: UploadInfo
     palette: list[list[int]]
+    palette_counts: list[int]

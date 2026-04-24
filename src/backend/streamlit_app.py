@@ -4,6 +4,11 @@ import streamlit as st
 
 API_URL = "http://127.0.0.1:8000/colorize/upload"
 
+
+def rgb_to_hex(rgb: list[int]) -> str:
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+
 st.set_page_config(page_title="Palette Pilot Upload Test", layout="wide")
 st.title("Palette Pilot Backend Upload Test")
 st.caption("This is a temporary test harness for the FastAPI upload endpoint.")
@@ -26,8 +31,40 @@ if st.button("Send to backend", type="primary"):
         except requests.RequestException as exc:
             st.error(f"Request failed: {exc}")
         else:
+            data = response.json()
+            palette = data.get("palette", [])
+            palette_counts = data.get("palette_counts", [])
+            total_count = sum(palette_counts)
+
             st.success("Backend responded successfully.")
-            st.json(response.json())
+            st.subheader("Extracted Palette")
+
+            if palette:
+                swatch_cols = st.columns(len(palette))
+                for col, rgb, count in zip(swatch_cols, palette, palette_counts):
+                    hex_color = rgb_to_hex(rgb)
+                    percentage = (count / total_count * 100) if total_count else 0
+                    with col:
+                        st.markdown(
+                            f"""
+                            <div style="
+                                height: 72px;
+                                border-radius: 6px;
+                                border: 1px solid #d0d0d0;
+                                background: {hex_color};
+                            "></div>
+                            <div style="font-size: 12px; margin-top: 6px;">{rgb}</div>
+                            <div style="font-size: 12px; color: #666;">{hex_color}</div>
+                            <div style="font-size: 12px; color: #666;">{percentage:.1f}%</div>
+                            <div style="font-size: 11px; color: #888;">{count} px</div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+            else:
+                st.info("No palette returned.")
+
+            st.subheader("Raw Response")
+            st.json(data)
 
 col1, col2 = st.columns(2)
 

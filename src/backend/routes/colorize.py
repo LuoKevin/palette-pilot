@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, UploadFile
 from schemas.colorize import UploadResponse, UploadInfo
 from PIL import Image
 from io import BytesIO
-from services.palette import extract_palette
+from services.palette import Palette, extract_palette
 
 
 router = APIRouter(prefix="/colorize", tags=["colorize"])
@@ -21,7 +21,7 @@ async def colorize(
     target_mode = target_img.mode
     reference_mode = reference_img.mode
 
-    reference_palette = extract_palette(reference_img)
+    reference_palette: Palette = extract_palette(reference_img)
 
     return UploadResponse(
         target=UploadInfo(
@@ -38,7 +38,8 @@ async def colorize(
             height=reference_height,
             mode=reference_mode,
         ),
-        palette=reference_palette
+        palette=reference_palette.colors,
+        palette_counts=reference_palette.counts,
     )
 
 
