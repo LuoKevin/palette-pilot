@@ -9,7 +9,7 @@ from services.preprocess import (
     create_tone_bucket_map,
     visualize_tone_buckets,
 )
-from services.recolor import recolor_from_buckets
+from services.recolor import recolor_image
 
 router = APIRouter(prefix="/colorize", tags=["colorize"])
 
@@ -29,6 +29,7 @@ async def colorize(
     reference_mode = reference_img.mode
 
     reference_palette: Palette = extract_palette(reference_img)
+    reference_palette.sort_by_luminance()
     luminance_img = compute_luminance(target_img)
     luminance_base64 = image_to_base64_png(luminance_img)
 
@@ -42,7 +43,7 @@ async def colorize(
     tone_bucket_img = visualize_tone_buckets(tone_bucket_map, num_buckets=num_buckets)
     tone_bucket_base64 = image_to_base64_png(tone_bucket_img)
 
-    recolored_img = recolor_from_buckets(tone_bucket_map, reference_palette.colors)
+    recolored_img = recolor_image(tone_bucket_map, luminance_img, reference_palette.colors)
     recolored_base64 = image_to_base64_png(recolored_img)
 
     return UploadResponse(
