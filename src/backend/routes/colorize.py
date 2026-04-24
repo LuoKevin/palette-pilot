@@ -1,8 +1,6 @@
-import base64
-from fastapi import APIRouter, File, UploadFile
-from schemas.colorize import UploadResponse, UploadInfo
-from PIL import Image
-from io import BytesIO
+from fastapi import APIRouter, File, Form, UploadFile
+from schemas.colorize import PipelineSettings, UploadResponse, UploadInfo
+from services.image_io import load_rgb_image, image_to_base64_png
 from services.palette import Palette, extract_palette
 from services.preprocess import (
     compute_luminance,
@@ -18,6 +16,9 @@ router = APIRouter(prefix="/colorize", tags=["colorize"])
 async def colorize(
     target_image: UploadFile = File(...),
     reference_image: UploadFile = File(...),
+    num_colors: int = Form(5),
+    lineart_threshold: int = Form(30),
+    min_shade: float = Form(0.45),
 ) -> UploadResponse:
 
     target_img = await load_rgb_image(target_image)
@@ -27,8 +28,6 @@ async def colorize(
     reference_width, reference_height = reference_img.size
     target_mode = target_img.mode
     reference_mode = reference_img.mode
-
-    num_colors = 5
 
     reference_palette: Palette = extract_palette(reference_img, num_colors=num_colors)
     reference_palette.sort_by_luminance()
@@ -45,7 +44,13 @@ async def colorize(
     tone_bucket_img = visualize_tone_buckets(tone_bucket_map, num_buckets=num_buckets)
     tone_bucket_base64 = image_to_base64_png(tone_bucket_img)
 
-    recolored_img = recolor_image(tone_bucket_map, luminance_img, reference_palette.colors)
+    recolored_img = recolor_image(
+        tone_bucket_map,
+        luminance_img,
+        reference_palette.colors,
+        lineart_threshold=lineart_threshold,
+        min_shade=min_shade,
+    )
     recolored_base64 = image_to_base64_png(recolored_img)
 
     return UploadResponse(
@@ -63,21 +68,15 @@ async def colorize(
             height=reference_height,
             mode=reference_mode,
         ),
+        settings=PipelineSettings(
+            num_colors=num_colors,
+            num_buckets=num_buckets,
+            lineart_threshold=lineart_threshold,
+            min_shade=min_shade,
+        ),
         palette=reference_palette.colors,
         palette_counts=reference_palette.counts,
         target_luminance_png_base64=luminance_base64,
         target_tone_buckets_png_base64=tone_bucket_base64,
         recolored_image_png_base64=recolored_base64,
     )
-
-
-async def load_rgb_image(file: UploadFile) -> Image.Image:
-    image_bytes = await file.read()
-    img = Image.open(BytesIO(image_bytes)).convert("RGB")
-    return img
-
-
-def image_to_base64_png(image: Image.Image) -> str:
-    buffered = BytesIO()
-    image.save(buffered, format="PNG")
-    return base64.b64encode(buffered.getvalue()).decode("utf-8")

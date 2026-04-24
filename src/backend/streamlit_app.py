@@ -18,6 +18,18 @@ st.caption("This is a temporary test harness for the FastAPI upload endpoint.")
 target_file = st.file_uploader("Target image", type=["png", "jpg", "jpeg"], key="target")
 reference_file = st.file_uploader("Reference image", type=["png", "jpg", "jpeg"], key="reference")
 
+st.subheader("Tuning Controls")
+tuning_col1, tuning_col2, tuning_col3 = st.columns(3)
+
+with tuning_col1:
+    num_colors = st.slider("Palette colors", min_value=2, max_value=8, value=5)
+
+with tuning_col2:
+    lineart_threshold = st.slider("Lineart threshold", min_value=0, max_value=100, value=30)
+
+with tuning_col3:
+    min_shade = st.slider("Minimum shade", min_value=0.0, max_value=1.0, value=0.45, step=0.05)
+
 if st.button("Send to backend", type="primary"):
     if target_file is None or reference_file is None:
         st.error("Upload both a target image and a reference image.")
@@ -26,14 +38,20 @@ if st.button("Send to backend", type="primary"):
             "target_image": (target_file.name, target_file.getvalue(), target_file.type),
             "reference_image": (reference_file.name, reference_file.getvalue(), reference_file.type),
         }
+        form_data = {
+            "num_colors": num_colors,
+            "lineart_threshold": lineart_threshold,
+            "min_shade": min_shade,
+        }
 
         try:
-            response = requests.post(API_URL, files=files, timeout=30)
+            response = requests.post(API_URL, files=files, data=form_data, timeout=30)
             response.raise_for_status()
         except requests.RequestException as exc:
             st.error(f"Request failed: {exc}")
         else:
             data = response.json()
+            settings = data.get("settings", {})
             palette = data.get("palette", [])
             palette_counts = data.get("palette_counts", [])
             total_count = sum(palette_counts)
@@ -42,6 +60,15 @@ if st.button("Send to backend", type="primary"):
             target_recolored_base64 = data.get("recolored_image_png_base64")
 
             st.success("Backend responded successfully.")
+
+            if settings:
+                st.subheader("Pipeline Settings")
+                settings_cols = st.columns(4)
+                settings_cols[0].metric("Colors", settings.get("num_colors"))
+                settings_cols[1].metric("Buckets", settings.get("num_buckets"))
+                settings_cols[2].metric("Lineart", settings.get("lineart_threshold"))
+                settings_cols[3].metric("Min shade", settings.get("min_shade"))
+
             st.subheader("Extracted Palette")
 
             if palette:
