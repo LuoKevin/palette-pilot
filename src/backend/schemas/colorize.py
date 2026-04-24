@@ -10,3 +10,4 @@ class UploadInfo(BaseModel):
 class UploadResponse(BaseModel):
     target: UploadInfo
     reference: UploadInfo
+    palette: list[list[int]]
