@@ -39,6 +39,7 @@ if st.button("Send to backend", type="primary"):
             total_count = sum(palette_counts)
             target_luminance_base64 = data.get("target_luminance_png_base64")
             target_tone_buckets_base64 = data.get("target_tone_buckets_png_base64")
+            target_recolored_base64 = data.get("recolored_image_png_base64")
 
             st.success("Backend responded successfully.")
             st.subheader("Extracted Palette")
@@ -68,7 +69,7 @@ if st.button("Send to backend", type="primary"):
                 st.info("No palette returned.")
 
             st.subheader("Target Preprocessing Debug")
-            debug_col1, debug_col2 = st.columns(2)
+            debug_col1, debug_col2, debug_col3 = st.columns(3)
 
             with debug_col1:
                 if target_luminance_base64:
@@ -89,6 +90,16 @@ if st.button("Send to backend", type="primary"):
                     )
                 else:
                     st.info("No tone buckets debug image returned.")
+
+            with debug_col3:
+                if target_recolored_base64:
+                    st.image(
+                        f"data:image/png;base64,{target_recolored_base64}",
+                        caption="Recolored",
+                        width=DEBUG_IMAGE_WIDTH,
+                    )
+                else:
+                    st.info("No recolored image returned.")
 
             st.subheader("Raw Response")
             st.json(data)

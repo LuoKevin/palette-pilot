@@ -15,6 +15,9 @@ def create_tone_bucket_map(
 ) -> Image.Image:
     if grayscale_image.mode != "L":
         raise ValueError(f"Expected grayscale image, got {grayscale_image.mode}")
+    if num_buckets <= 1:
+        raise ValueError("num_buckets must be greater than 1")
+
     bucket_map = grayscale_image.point(lambda p: p * num_buckets // 256)
     return bucket_map
 
@@ -28,13 +31,3 @@ def visualize_tone_buckets(
         raise ValueError("num_buckets must be greater than 1")
 
     return tone_buckets.point(lambda p: p * 255 // (num_buckets - 1))
-
-
-def create_tone_bucket_debug_image(
-    image: Image.Image, num_buckets: int = 5
-) -> Image.Image:
-    if num_buckets <= 1:
-        raise ValueError("num_buckets must be greater than 1")
-    luminance_image = compute_luminance(image)
-    bucket_map = create_tone_bucket_map(luminance_image, num_buckets)
-    return visualize_tone_buckets(bucket_map, num_buckets)

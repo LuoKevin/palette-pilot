@@ -4,7 +4,12 @@ from schemas.colorize import UploadResponse, UploadInfo
 from PIL import Image
 from io import BytesIO
 from services.palette import Palette, extract_palette
-from services.preprocess import compute_luminance, create_tone_bucket_debug_image
+from services.preprocess import (
+    compute_luminance,
+    create_tone_bucket_map,
+    visualize_tone_buckets,
+)
+from services.recolor import recolor_from_buckets
 
 router = APIRouter(prefix="/colorize", tags=["colorize"])
 
@@ -27,8 +32,19 @@ async def colorize(
     luminance_img = compute_luminance(target_img)
     luminance_base64 = image_to_base64_png(luminance_img)
 
-    tone_bucket_img = create_tone_bucket_debug_image(target_img)
+    if not reference_palette.colors:
+        raise ValueError("Reference image has no colors in its palette.")
+
+    num_buckets = len(reference_palette.colors)
+
+    tone_bucket_map = create_tone_bucket_map(luminance_img, num_buckets=num_buckets)
+
+    tone_bucket_img = visualize_tone_buckets(tone_bucket_map, num_buckets=num_buckets)
     tone_bucket_base64 = image_to_base64_png(tone_bucket_img)
+
+    recolored_img = recolor_from_buckets(tone_bucket_map, reference_palette.colors)
+    recolored_base64 = image_to_base64_png(recolored_img)
+
     return UploadResponse(
         target=UploadInfo(
             filename=target_image.filename,
@@ -48,6 +64,7 @@ async def colorize(
         palette_counts=reference_palette.counts,
         target_luminance_png_base64=luminance_base64,
         target_tone_buckets_png_base64=tone_bucket_base64,
+        recolored_image_png_base64=recolored_base64,
     )
 
 
